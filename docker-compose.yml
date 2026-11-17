@@ -1,0 +1,102 @@
+
+services:
+
+  # PostgreSQL database
+  db:
+    image: postgres:17-alpine
+    container_name: fullstack-db
+
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: localpassword
+      POSTGRES_DB: userdb
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d userdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - app-network
+
+
+  # Node.js backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: fullstack-backend
+
+    environment:
+      PORT: 5000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: appuser
+      DB_PASSWORD: localpassword
+      DB_NAME: userdb
+
+    ports:
+      - "5001:5000"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:5000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    networks:
+      - app-network
+
+
+  # React frontend with Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    container_name: fullstack-frontend
+
+    ports:
+      - "8080:80"
+
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - app-network
+
+
+# Persistent PostgreSQL storage
+volumes:
+  postgres_data:
+
+
+# Private Docker network
+networks:
+  app-network:
+    driver: bridge
