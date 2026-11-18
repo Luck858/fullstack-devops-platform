@@ -4,6 +4,8 @@ kind: Deployment
 metadata:
   name: postgres
   namespace: dev
+  labels:
+    app: postgres
 spec:
   replicas: 1
   selector:
@@ -18,9 +20,16 @@ spec:
         - name: postgres
           image: postgres:15
           imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
           env:
             - name: POSTGRES_DB
-              value: fullstackdb
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: POSTGRES_DB
             - name: POSTGRES_USER
               value: postgres
             - name: POSTGRES_PASSWORD
@@ -28,13 +37,6 @@ spec:
                 secretKeyRef:
                   name: postgres-secret
                   key: POSTGRES_PASSWORD
-          ports:
-            - containerPort: 5432
-              name: postgres
-          volumeMounts:
-            - name: init-script
-              mountPath: /docker-entrypoint-initdb.d
-              readOnly: true
           readinessProbe:
             exec:
               command:
@@ -51,7 +53,10 @@ spec:
                 - pg_isready -U postgres -d fullstackdb
             initialDelaySeconds: 30
             periodSeconds: 10
-      volumes:
-        - name: init-script
-          configMap:
-            name: postgres-init
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
