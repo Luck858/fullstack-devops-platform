@@ -20,7 +20,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: POSTGRES_DB
-              value: usersdb
+              value: fullstackdb
             - name: POSTGRES_USER
               value: postgres
             - name: POSTGRES_PASSWORD
@@ -30,6 +30,7 @@ spec:
                   key: POSTGRES_PASSWORD
           ports:
             - containerPort: 5432
+              name: postgres
           volumeMounts:
             - name: init-script
               mountPath: /docker-entrypoint-initdb.d
@@ -39,7 +40,7 @@ spec:
               command:
                 - sh
                 - -c
-                - pg_isready -U postgres -d usersdb
+                - pg_isready -U postgres -d fullstackdb
             initialDelaySeconds: 10
             periodSeconds: 5
           livenessProbe:
@@ -47,7 +48,7 @@ spec:
               command:
                 - sh
                 - -c
-                - pg_isready -U postgres -d usersdb
+                - pg_isready -U postgres -d fullstackdb
             initialDelaySeconds: 30
             periodSeconds: 10
       volumes:
