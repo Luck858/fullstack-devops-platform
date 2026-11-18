@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: lucky89788/fullstack-backend:latest
+          image: lucky89788/fullstack-devops-platform-backend
           imagePullPolicy: Always
           ports:
             - name: http
